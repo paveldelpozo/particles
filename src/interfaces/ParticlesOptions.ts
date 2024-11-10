@@ -7,5 +7,6 @@ export interface ParticlesOptions {
     minDistance?: number
     mouseMinProximity?: number
     mouseAttraction?: boolean
+    mouseRepulsion?: boolean
     fullOpacityDistance?: number
 }

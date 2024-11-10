@@ -24,8 +24,9 @@ export class CanvasDrawer {
         this.ctx.closePath()
     }
 
-    drawLine = (obj1: CoordinatesInterface, obj2: CoordinatesInterface, opacity: number): void => {
+    drawLine = (obj1: CoordinatesInterface, obj2: CoordinatesInterface, opacity: number, lineWidth: number = 1): void => {
         this.ctx.strokeStyle = `rgba(0, 0, 0, ${opacity})`;
+        this.ctx.lineWidth = lineWidth
         this.ctx.beginPath();
         this.ctx.moveTo(obj1.x, obj1.y);
         this.ctx.lineTo(obj2.x, obj2.y);

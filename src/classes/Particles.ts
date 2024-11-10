@@ -1,10 +1,13 @@
-import { Particle } from '@/classes/Particle'
-import { Utils } from '@/classes/Utils'
-import { CanvasDrawer } from '@/classes/CanvasDrawer'
-import type { CoordinatesInterface } from '@/interfaces/CoordinatesInterface'
-import type { ParticlesOptions } from '@/interfaces/ParticlesOptions'
+import type {CoordinatesInterface} from '@/interfaces/CoordinatesInterface'
+import type {ParticlesOptions} from '@/interfaces/ParticlesOptions'
+import {CanvasDrawer} from '@/classes/CanvasDrawer'
+import {Particle} from '@/classes/Particle'
+import {Performance} from "@/classes/Performance";
+import {Utils} from '@/classes/Utils'
 
 export class Particles {
+    performance: Performance
+
     canvas: HTMLCanvasElement
     ctx: CanvasRenderingContext2D
     drawer: CanvasDrawer
@@ -14,20 +17,24 @@ export class Particles {
     maxRadius: number
     minSpeed: number
     maxSpeed: number
-
-    particles: Particle[] = []
     minDistance: number = 200
     fullOpacityDistance: number = 150
+    mouseMinProximity: number = 100
+    mouseAttraction: boolean = false
+    mouseRepulsion: boolean = false
+
+    particles: Particle[] = []
+    pause: false
+
     mouse: CoordinatesInterface = {
         x: 0,
         y: 0
     }
 
-    lastTime = performance.now();
-    fps = 0;
-
     constructor(canvas: HTMLCanvasElement, options?: ParticlesOptions) {
+        this.performance = new Performance()
         this.canvas = canvas
+        this.ctx = this.canvas.getContext('2d');
         this.maxParticles = options?.maxParticles ?? 10
         this.minRadius = options?.minRadius ?? 2
         this.maxRadius = options?.maxRadius ?? 5
@@ -37,7 +44,8 @@ export class Particles {
         this.fullOpacityDistance = options?.fullOpacityDistance ?? 150
         this.mouseMinProximity = options?.mouseMinProximity ?? 100
         this.mouseAttraction = options?.mouseAttraction ?? false
-        this.ctx = this.canvas.getContext('2d');
+        this.mouseRepulsion = options?.mouseRepulsion ?? false
+
         this.init()
     }
 
@@ -48,6 +56,13 @@ export class Particles {
             this.createInitialParticles()
             this.animate()
             this.canvas.addEventListener('mousemove', this.mouseMoveHandler)
+            this.canvas.addEventListener('touchmove', this.mouseMoveHandler, { passive: true })
+            this.canvas.addEventListener('click', this.mouseClickHandler)
+            this.canvas.addEventListener('contextmenu', this.mouseRightClickHandler)
+            this.canvas.addEventListener('touchstart', this.mouseTouchStartHandler, { passive: true })
+            this.canvas.addEventListener('touchend', this.mouseTouchEndHandler)
+            this.canvas.addEventListener("wheel", this.mouseWheelHandler, { passive: true });
+            window.addEventListener('keyup', this.keyUpHandler)
         }
     }
 
@@ -80,10 +95,12 @@ export class Particles {
 
     animate = (): void => {
         this.setFullSizeCanvas()
+
         this.drawer.clearCanvas()
         this.animateParticles()
-        this.calculateFPS()
+        this.performance.refresh()
         this.drawInfo()
+
         requestAnimationFrame(this.animate)
     }
 
@@ -102,6 +119,7 @@ export class Particles {
             this.particles.push(this.createParticle())
         }
         this.updateConnections()
+        this.drawMouse()
     }
 
     drawParticle = (particle: Particle): void => {
@@ -122,12 +140,24 @@ export class Particles {
 
     checkMouseProximity = (particle: Particle): void => {
         const distance = Utils.calculateDistance(particle.coordinates, this.mouse)
-        if (distance < this.mouseMinProximity && this.mouse.x > 10 && this.mouse.x < this.canvas.width - 10 && this.mouse.y > 10 && this.mouse.y < this.canvas.height - 10) {
+        if ((this.mouseAttraction || this.mouseRepulsion)
+            && !this.pause
+            && distance < this.mouseMinProximity
+            && this.mouse.x > 10
+            && this.mouse.x < this.canvas.width - 10
+            && this.mouse.y > 10
+            && this.mouse.y < this.canvas.height - 10
+        ) {
             const {radians} = Utils.calculateAngle(particle.coordinates, this.mouse)
             const delta = 2
+
             particle.coordinates.x = particle.coordinates.x + delta * Math.cos(radians + (this.mouseAttraction ? 0 : Math.PI));
             particle.coordinates.y = particle.coordinates.y + delta * Math.sin(radians + (this.mouseAttraction ? 0 : Math.PI));
-        } else {
+        }
+        if (!this.mouseAttraction && !this.mouseRepulsion) {
+            this.drawer.drawLine(particle.coordinates, this.mouse, this.getOpacity(distance), 2);
+        }
+        if (!this.pause && (distance > this.mouseMinProximity + 2 || (!this.mouseAttraction && !this.mouseRepulsion))) {
             particle.move()
         }
     }
@@ -144,7 +174,7 @@ export class Particles {
         indexes.forEach(index => this.particles.splice(index, 1))
     }
 
-    updateConnections(): void {
+    updateConnections = (): void => {
         for (let i = 0; i < this.particles.length; i++) {
             for (let j = i + 1; j < this.particles.length; j++) {
                 const distance = Utils.calculateDistance(this.particles[i].coordinates, this.particles[j].coordinates);
@@ -153,6 +183,11 @@ export class Particles {
                 }
             }
         }
+    }
+
+    drawMouse = () => {
+        let mouseCircle = new Particle({ coordinates: this.mouse, radius: 10, bgColor: '#000' })
+        this.drawParticle(mouseCircle)
     }
 
     getOpacity = (distance) => {
@@ -165,17 +200,10 @@ export class Particles {
         return opacity;
     }
 
-    calculateFPS = () => {
-        const now = performance.now();
-        const delta = now - this.lastTime;
-        this.lastTime = now;
-        this.fps = 1000 / delta;
-    }
-
     drawInfo = (): void => {
-        this.drawer.writeText(`FPS: ${this.fps.toFixed(0)}`, { x: 10, y: 0 })
-        this.drawer.writeText(`Mouse: ${this.mouse.x}, ${this.mouse.y}`, { x: 10, y: 20 })
-        this.drawer.writeText(`Particles: ${this.particles.length}`, { x: 10, y: 40 })
+        this.drawer.writeText(`FPS: ${this.performance.getFPS()}`, {x: 10, y: 0})
+        this.drawer.writeText(`Mouse: ${this.mouse.x}, ${this.mouse.y}`, {x: 10, y: 20})
+        this.drawer.writeText(`Particles: ${this.particles.length}`, {x: 10, y: 40})
     }
 
     mouseMoveHandler = (event): void => {
@@ -184,8 +212,51 @@ export class Particles {
         this.mouse.y = event.clientY - rect.top;
     }
 
+    mouseClickHandler = (): void => {
+        this.mouseAttraction = !this.mouseAttraction;
+        if (this.mouseAttraction) this.mouseRepulsion = false
+    }
+
+    mouseRightClickHandler = (event): void => {
+        event.preventDefault()
+        this.mouseRepulsion = !this.mouseRepulsion
+        if (this.mouseRepulsion) this.mouseAttraction = false
+    }
+
+    mouseTouchStartHandler = (): void => {
+        this.mouseAttraction = true
+    }
+
+    mouseTouchEndHandler = (): void => {
+        this.mouseAttraction = false
+    }
+
+    mouseWheelHandler = (event: WheelEvent): void => {
+        if (event.deltaX < 0 || event.deltaY < 0 || event.deltaZ < 0) {
+            this.particles.splice(this.maxParticles--, 1)
+        } else {
+            this.maxParticles++
+            this.particles.push(this.createParticle())
+        }
+    }
+
+    keyUpHandler = (event: KeyboardEvent): void => {
+        switch (event.code) {
+            case 'Space':
+                this.pause = !this.pause
+                break
+        }
+    }
+
     unmount = () => {
         this.canvas.removeEventListener('mousemove', this.mouseMoveHandler)
+        this.canvas.removeEventListener('touchmove', this.mouseMoveHandler)
+        this.canvas.removeEventListener('click', this.mouseClickHandler)
+        this.canvas.removeEventListener('contextmenu', this.mouseRightClickHandler)
+        this.canvas.removeEventListener('touchstart', this.mouseTouchStartHandler)
+        this.canvas.removeEventListener('touchend', this.mouseTouchEndHandler)
+        this.canvas.removeEventListener("wheel", this.mouseWheelHandler);
+        window.removeEventListener('keyup', this.keyUpHandler)
     }
 
 }
