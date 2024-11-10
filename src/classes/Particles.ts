@@ -156,7 +156,7 @@ export class Particles {
     }
 
     getOpacity = (distance) => {
-        let opacity = 0;
+        let opacity
         if (distance <= this.fullOpacityDistance) {
             opacity = 1;
         } else {
