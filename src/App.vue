@@ -2,6 +2,7 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { Particles } from '@/classes/Particles'
 import type {ParticlesOptions} from "@/interfaces/ParticlesOptions";
+import GitHub from '@/components/GitHub.vue'
 
 const canvas = ref<HTMLCanvasElement>()
 const bg = ref<null|Particles>()
@@ -27,6 +28,8 @@ onBeforeUnmount(() => {
 
 <template>
     <canvas ref="canvas"></canvas>
+
+    <git-hub color="#1D1D1D" url="https://github.com/paveldelpozo/particles" />
 </template>
 
 <style scoped>
