@@ -9,8 +9,8 @@ export class Particles {
     performance: Performance
 
     canvas: HTMLCanvasElement
-    ctx: CanvasRenderingContext2D
-    drawer: CanvasDrawer
+    ctx: CanvasRenderingContext2D|null
+    drawer: CanvasDrawer|null
 
     maxParticles: number
     minRadius: number
@@ -24,7 +24,7 @@ export class Particles {
     mouseRepulsion: boolean = false
 
     particles: Particle[] = []
-    pause: false
+    pause: boolean
 
     mouse: CoordinatesInterface = {
         x: 0,
@@ -35,6 +35,7 @@ export class Particles {
         this.performance = new Performance()
         this.canvas = canvas
         this.ctx = this.canvas.getContext('2d');
+        this.drawer = null
         this.maxParticles = options?.maxParticles ?? 10
         this.minRadius = options?.minRadius ?? 2
         this.maxRadius = options?.maxRadius ?? 5
@@ -45,7 +46,7 @@ export class Particles {
         this.mouseMinProximity = options?.mouseMinProximity ?? 100
         this.mouseAttraction = options?.mouseAttraction ?? false
         this.mouseRepulsion = options?.mouseRepulsion ?? false
-
+        this.pause = false
         this.init()
     }
 
@@ -56,7 +57,7 @@ export class Particles {
             this.createInitialParticles()
             this.animate()
             this.canvas.addEventListener('mousemove', this.mouseMoveHandler)
-            this.canvas.addEventListener('touchmove', this.mouseMoveHandler, { passive: true })
+            //this.canvas.addEventListener('touchmove', this.mouseMoveHandler, { passive: true })
             this.canvas.addEventListener('click', this.mouseClickHandler)
             this.canvas.addEventListener('contextmenu', this.mouseRightClickHandler)
             this.canvas.addEventListener('touchstart', this.mouseTouchStartHandler, { passive: true })
@@ -94,8 +95,8 @@ export class Particles {
     }
 
     animate = (): void => {
+        if (!this.drawer) return
         this.setFullSizeCanvas()
-
         this.drawer.clearCanvas()
         this.animateParticles()
         this.performance.refresh()
@@ -123,6 +124,7 @@ export class Particles {
     }
 
     drawParticle = (particle: Particle): void => {
+        if (!this.drawer) return
         this.drawer.drawCircle(
             particle.coordinates,
             particle.radius,
@@ -139,6 +141,7 @@ export class Particles {
     }
 
     checkMouseProximity = (particle: Particle): void => {
+        if (!this.drawer) return
         const distance = Utils.calculateDistance(particle.coordinates, this.mouse)
         if ((this.mouseAttraction || this.mouseRepulsion)
             && !this.pause
@@ -162,7 +165,7 @@ export class Particles {
         }
     }
 
-    particleIsOutsideBoundaries = (particle) => {
+    particleIsOutsideBoundaries = (particle: Particle) => {
         return particle.coordinates.x + particle.radius > this.canvas.width + this.minDistance
             || particle.coordinates.x - particle.radius < 0 - this.minDistance
             || particle.coordinates.y + particle.radius > this.canvas.height + this.minDistance
@@ -175,6 +178,7 @@ export class Particles {
     }
 
     updateConnections = (): void => {
+        if (!this.drawer) return
         for (let i = 0; i < this.particles.length; i++) {
             for (let j = i + 1; j < this.particles.length; j++) {
                 const distance = Utils.calculateDistance(this.particles[i].coordinates, this.particles[j].coordinates);
@@ -186,11 +190,11 @@ export class Particles {
     }
 
     drawMouse = () => {
-        let mouseCircle = new Particle({ coordinates: this.mouse, radius: 10, bgColor: '#000' })
+        const mouseCircle = new Particle({ coordinates: this.mouse, radius: 10, bgColor: '#000' })
         this.drawParticle(mouseCircle)
     }
 
-    getOpacity = (distance) => {
+    getOpacity = (distance: number) => {
         let opacity
         if (distance <= this.fullOpacityDistance) {
             opacity = 1;
@@ -201,12 +205,13 @@ export class Particles {
     }
 
     drawInfo = (): void => {
+        if (!this.drawer) return
         this.drawer.writeText(`FPS: ${this.performance.getFPS()}`, {x: 10, y: 0})
         this.drawer.writeText(`Mouse: ${this.mouse.x}, ${this.mouse.y}`, {x: 10, y: 20})
         this.drawer.writeText(`Particles: ${this.particles.length}`, {x: 10, y: 40})
     }
 
-    mouseMoveHandler = (event): void => {
+    mouseMoveHandler = (event: MouseEvent): void => {
         const rect = this.canvas.getBoundingClientRect();
         this.mouse.x = event.clientX - rect.left;
         this.mouse.y = event.clientY - rect.top;
@@ -217,7 +222,7 @@ export class Particles {
         if (this.mouseAttraction) this.mouseRepulsion = false
     }
 
-    mouseRightClickHandler = (event): void => {
+    mouseRightClickHandler = (event: MouseEvent): void => {
         event.preventDefault()
         this.mouseRepulsion = !this.mouseRepulsion
         if (this.mouseRepulsion) this.mouseAttraction = false
@@ -250,7 +255,7 @@ export class Particles {
 
     unmount = () => {
         this.canvas.removeEventListener('mousemove', this.mouseMoveHandler)
-        this.canvas.removeEventListener('touchmove', this.mouseMoveHandler)
+        // this.canvas.removeEventListener('touchmove', this.mouseMoveHandler)
         this.canvas.removeEventListener('click', this.mouseClickHandler)
         this.canvas.removeEventListener('contextmenu', this.mouseRightClickHandler)
         this.canvas.removeEventListener('touchstart', this.mouseTouchStartHandler)

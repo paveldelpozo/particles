@@ -8,7 +8,7 @@ export class Particle implements ParticleInterface {
     }
     radius: number
     bgColor: string
-    strokeColor: string
+    strokeColor: string|null
     lineWidth: number
     dirX: number
     dirY: number
@@ -29,7 +29,7 @@ export class Particle implements ParticleInterface {
         this.speed = options?.speed ?? .1
     }
 
-    move = (speed) => {
+    move = (speed?: number) => {
         this.coordinates.x += this.dirX * (speed ?? this.speed)
         this.coordinates.y += this.dirY * (speed ?? this.speed)
     }

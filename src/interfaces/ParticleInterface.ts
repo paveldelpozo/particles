@@ -4,7 +4,7 @@ export interface ParticleInterface {
     coordinates: CoordinatesInterface
     radius?: number
     bgColor?: string
-    strokeColor?: string
+    strokeColor?: string|null
     lineWidth?: number
     speed?: number
 }

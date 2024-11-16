@@ -9,7 +9,7 @@ export class CanvasDrawer {
         this.ctx = ctx
     }
 
-    drawCircle = (coordinates: CoordinatesInterface, radius: number, options?: { bgColor?: string, strokeColor?: string, lineWidth?: number }): void => {
+    drawCircle = (coordinates: CoordinatesInterface, radius: number, options?: { bgColor?: string, strokeColor: string|null, lineWidth?: number }): void => {
         this.ctx.beginPath()
         this.ctx.arc(coordinates.x, coordinates.y, radius, 0, 2 * Math.PI)
         if (options?.bgColor) {
@@ -33,7 +33,7 @@ export class CanvasDrawer {
         this.ctx.stroke();
     }
 
-    writeText = (text: string, coordinates: CoordinatesInterface, font = null): void => {
+    writeText = (text: string, coordinates: CoordinatesInterface, font: null|{family:string, size: number} = null): void => {
         const fontSize = font?.size ?? 12
         const fontFamily = font?.family ?? 'sans-serif'
         this.ctx.font = `${fontSize}px ${fontFamily}`;

@@ -16,6 +16,7 @@ const options = ref<ParticlesOptions>({
 })
 
 onMounted(() => {
+    //@ts-expect-error use refs to create instance of Particles
     bg.value = new Particles(canvas.value, options.value)
 })
 

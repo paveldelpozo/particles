@@ -9,7 +9,7 @@ export class Performance {
         this.fps = 1000 / delta;
     }
 
-    getFPS = (): number => {
+    getFPS = (): string => {
         return this.fps.toFixed(0)
     }
 }
